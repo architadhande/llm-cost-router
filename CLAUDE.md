@@ -15,7 +15,7 @@ hard cases go to the specialist (frontier model), and a judge checks outcomes.
 
 ## Stack (everything must stay $0)
 - Cheap model: Groq `openai/gpt-oss-20b` (Groq retired `llama-3.1-8b-instant`)
-- Frontier model: Groq `llama-3.3-70b-versatile` (or `openai/gpt-oss-120b`)
+- Frontier model: Groq `openai/gpt-oss-120b` (`llama-3.3-70b-versatile` no longer offered)
 - Judge: Google Gemini Flash (`gemini-3.8-flash`) via AI Studio (different model family than the models being judged)
 - Data collection: Tavily + Exa APIs (free monthly credits — use basic search depth only)
 - Datasets: Hugging Face
