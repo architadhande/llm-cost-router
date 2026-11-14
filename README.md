@@ -3,7 +3,7 @@ ML router that sends each LLM request to the cheapest model that can handle it, 
 
 ## Roadmap
 - [x] Phase 0: Setup — folder structure, `.env`, first "hello world" call to Groq and Gemini
-- [ ] Phase 1: Data — collect ~2–3k prompts (Hugging Face + business-style prompts via Tavily/Exa)
+- [x] Phase 1: Data — collect ~2–3k prompts (Hugging Face + business-style prompts via Tavily/Exa)
 - [ ] Phase 2: Labels — run prompts through both models, judge with Gemini, validate judge on ~100 hand labels
 - [ ] Phase 3: Router — baseline rules → logistic regression on embeddings → XGBoost
 - [ ] Phase 4: Evaluation — cost-vs-quality curve, cost per successful outcome vs. baselines
