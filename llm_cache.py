@@ -38,3 +38,27 @@ def put(result):
         f"VALUES ({', '.join('?' * len(COLUMNS))})",
         [result[c] for c in COLUMNS],
     )
+
+con.execute("""
+    CREATE TABLE IF NOT EXISTS judgments (
+        prompt_id VARCHAR, model VARCHAR, config VARCHAR, judge VARCHAR,
+        passed BOOLEAN, reason VARCHAR,
+        created_at TIMESTAMP DEFAULT current_timestamp,
+        PRIMARY KEY (prompt_id, model, config, judge)
+    )
+""")
+
+
+def is_judged(prompt_id, model, config, judge):
+    return con.execute(
+        "SELECT 1 FROM judgments WHERE prompt_id=? AND model=? AND config=? AND judge=?",
+        [prompt_id, model, config, judge],
+    ).fetchone() is not None
+
+
+def put_judgment(prompt_id, model, config, judge, passed, reason):
+    con.execute(
+        "INSERT OR REPLACE INTO judgments (prompt_id, model, config, judge, passed, reason) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        [prompt_id, model, config, judge, passed, reason],
+    )

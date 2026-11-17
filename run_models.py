@@ -12,7 +12,7 @@ from api_utils import with_retries
 
 load_dotenv(".env")
 CHEAP, FRONTIER = "openai/gpt-oss-20b", "openai/gpt-oss-120b"
-REASONING_EFFORT, MAX_TOKENS = "low", 400
+REASONING_EFFORT, MAX_TOKENS = "low", 1000
 CONFIG = f"{REASONING_EFFORT}|{MAX_TOKENS}"  # part of the cache key
 PAUSE = 2.0  # seconds between real calls (stays under per-minute limits)
 
