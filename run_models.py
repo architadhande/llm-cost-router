@@ -13,7 +13,9 @@ from api_utils import with_retries
 load_dotenv(".env")
 CHEAP, FRONTIER = "openai/gpt-oss-20b", "openai/gpt-oss-120b"
 REASONING_EFFORT, MAX_TOKENS = "low", 1000
-CONFIG = f"{REASONING_EFFORT}|{MAX_TOKENS}"  # part of the cache key
+SYSTEM = "Answer concisely: under 300 words unless the task needs more."
+SYSTEM_VERSION = "concise-v1"  # bump this if SYSTEM changes, so old answers are not reused
+CONFIG = f"{REASONING_EFFORT}|{MAX_TOKENS}|{SYSTEM_VERSION}"  # part of the cache key
 PAUSE = 2.0  # seconds between real calls (stays under per-minute limits)
 
 groq = Groq(timeout=60, max_retries=0)
@@ -26,7 +28,8 @@ def answer(prompt_id, prompt, model):
         return cached, False
     start = time.perf_counter()
     r = with_retries(lambda: groq.chat.completions.create(
-        model=model, messages=[{"role": "user", "content": prompt}],
+        model=model, messages=[{"role": "system", "content": SYSTEM},
+                  {"role": "user", "content": prompt}],
         reasoning_effort=REASONING_EFFORT, max_completion_tokens=MAX_TOKENS,
     ), attempts=5, first_wait=10)
     details = r.usage.completion_tokens_details
