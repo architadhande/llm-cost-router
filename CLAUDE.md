@@ -20,7 +20,7 @@ hard cases go to the specialist (frontier model), and a judge checks outcomes.
 - Data collection: Tavily + Exa APIs (free monthly credits — use basic search depth only)
 - Datasets: Hugging Face
 - Embeddings: `sentence-transformers` running locally
-- ML: scikit-learn, XGBoost, pandas
+- ML: scikit-learn (HistGradientBoosting instead of XGBoost, which needs Homebrew libomp), pandas
 - Storage/cache: DuckDB (cache EVERY model response so we never re-call an API for the same prompt)
 - Demo: Streamlit
 - Costs are MODELED: we price each call using providers' published per-token rates,
