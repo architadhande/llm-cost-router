@@ -20,6 +20,8 @@ from run_models import CHEAP, CONFIG, FRONTIER
 
 load_dotenv(".env")
 JUDGE = "gemini-3.8-flash"
+THINKING = "LOW"  # judge thinking level; less thinking = faster replies, fewer 504s
+JUDGE_KEY = f"{JUDGE}|think-{THINKING.lower()}"  # cache key: new settings -> re-judge
 PROMPTS_PER_CALL = 10
 MAX_CALLS_PER_RUN = 18  # free tier is 20 requests/day; keep 2 spare
 PAUSE = 13  # free tier is 5 requests/minute
@@ -59,7 +61,8 @@ def grade(contents):
     r = client.models.generate_content(
         model=JUDGE, contents=contents,
         config=types.GenerateContentConfig(response_mime_type="application/json",
-                                           response_schema=list[Verdict]))
+                                           response_schema=list[Verdict],
+                                           thinking_config=types.ThinkingConfig(thinking_level=THINKING)))
     return r.parsed, r.usage_metadata
 
 
@@ -69,7 +72,7 @@ if __name__ == "__main__":
     prompts = pd.read_parquet("data/prompts_all.parquet").query("prompt_id in @ids")
     prompts = prompts[prompts.source != "gsm8k"]  # graded by exact match instead
     todo = [r for r in prompts.itertuples()
-            if not all(llm_cache.is_judged(r.prompt_id, m, CONFIG, JUDGE) for m in (CHEAP, FRONTIER))]
+            if not all(llm_cache.is_judged(r.prompt_id, m, CONFIG, JUDGE_KEY) for m in (CHEAP, FRONTIER))]
     batches = [todo[i:i + PROMPTS_PER_CALL] for i in range(0, len(todo), PROMPTS_PER_CALL)]
     print(f"{len(todo)} prompts to judge -> {len(batches)} judge calls")
     rng = random.Random(42)
@@ -79,12 +82,12 @@ if __name__ == "__main__":
             print(f"\n--- DRY RUN: batch {n}, {len(items)} items, ~{len(contents)//4} tokens ---")
             print(contents[:700], "...")
             break
-        verdicts, usage = with_retries(lambda: grade(contents), attempts=4, first_wait=15)
+        verdicts, usage = with_retries(lambda: grade(contents), attempts=3, first_wait=60)
         by_id = {it["item_id"]: it for it in items}
         for v in verdicts:
             it = by_id.get(v.item_id)
             if it:  # ignore any item_id the judge invented
-                llm_cache.put_judgment(it["prompt_id"], it["model"], CONFIG, JUDGE, v.passed, v.reason)
+                llm_cache.put_judgment(it["prompt_id"], it["model"], CONFIG, JUDGE_KEY, v.passed, v.reason)
         print(f"[call {n}] {len(verdicts)}/{len(items)} verdicts | tokens in/out "
               f"{usage.prompt_token_count}/{usage.candidates_token_count} "
               f"(thinking {usage.thoughts_token_count or 0})")
