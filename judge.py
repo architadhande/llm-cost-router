@@ -89,7 +89,11 @@ if __name__ == "__main__":
     prompts = (pd.read_parquet("data/prompts_all.parquet").set_index("prompt_id")
                .loc[ids].reset_index())  # judge in the order the ids file lists them
     prompts = prompts[prompts.source != "gsm8k"]  # graded by exact match instead
-    todo = [r for r in prompts.itertuples()
+    answered = [r for r in prompts.itertuples()  # both models must have answered already
+                if all(llm_cache.get(r.prompt_id, m, CONFIG) for m in (CHEAP, FRONTIER))]
+    if len(answered) < len(prompts):
+        print(f"skipping {len(prompts) - len(answered)} prompts not yet answered by both models")
+    todo = [r for r in answered
             if not all(llm_cache.is_judged(r.prompt_id, m, CONFIG, JUDGE_KEY) for m in (CHEAP, FRONTIER))]
     batches = [todo[i:i + PROMPTS_PER_CALL] for i in range(0, len(todo), PROMPTS_PER_CALL)]
     print(f"{len(todo)} prompts to judge -> {len(batches)} judge calls")
