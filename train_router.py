@@ -7,6 +7,7 @@ Output: data/router_scores.parquet (one score column per router) for evaluate.py
 
 from pathlib import Path
 
+import joblib
 import pandas as pd
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
@@ -17,6 +18,7 @@ from sklearn.preprocessing import StandardScaler
 
 SEED = 42
 OUT = Path("data/router_scores.parquet")
+MODELS = Path("models")  # final routers for the app (small; committed to git)
 
 labels = pd.read_parquet("data/labels.parquet")
 features = pd.read_parquet("data/features.parquet")
@@ -45,3 +47,11 @@ for name in ["rule", *routers]:
 
 scores.to_parquet(OUT, index=False)
 print(f"\nSaved out-of-fold scores -> {OUT}")
+
+# Final routers: train on ALL labelled prompts and save for the Streamlit app
+MODELS.mkdir(exist_ok=True)
+for name, model in routers.items():
+    model.fit(X, y)
+    joblib.dump({"model": model, "columns": list(X.columns), "n_train": len(X)},
+                MODELS / f"router_{name}.joblib")
+print(f"Saved final routers -> {MODELS}/")
