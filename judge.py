@@ -84,9 +84,10 @@ def grade(contents):
 
 
 if __name__ == "__main__":
-    ids = set(open(sys.argv[1]).read().split())
+    ids = list(dict.fromkeys(open(sys.argv[1]).read().split()))  # keep file order, drop repeats
     dry_run = "--dry-run" in sys.argv
-    prompts = pd.read_parquet("data/prompts_all.parquet").query("prompt_id in @ids")
+    prompts = (pd.read_parquet("data/prompts_all.parquet").set_index("prompt_id")
+               .loc[ids].reset_index())  # judge in the order the ids file lists them
     prompts = prompts[prompts.source != "gsm8k"]  # graded by exact match instead
     todo = [r for r in prompts.itertuples()
             if not all(llm_cache.is_judged(r.prompt_id, m, CONFIG, JUDGE_KEY) for m in (CHEAP, FRONTIER))]
