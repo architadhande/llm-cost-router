@@ -19,22 +19,34 @@ from api_utils import with_retries
 from run_models import CHEAP, CONFIG, FRONTIER
 
 load_dotenv(".env")
-JUDGE = "gemini-3.8-flash"
+JUDGE = "gemini-3.8-flash"  # Lite tested: passed 32/32 incl. clear errors; too lenient
 THINKING = "LOW"  # judge thinking level; less thinking = faster replies, fewer 504s
-JUDGE_KEY = f"{JUDGE}|think-{THINKING.lower()}"  # cache key: new settings -> re-judge
+RUBRIC_VERSION = "v2"  # v2 = reference answers + list evidence before the verdict
+JUDGE_KEY = f"{JUDGE}|think-{THINKING.lower()}|rubric-{RUBRIC_VERSION}"  # cache key
 PROMPTS_PER_CALL = 10
 MAX_CALLS_PER_RUN = 18  # free tier is 20 requests/day; keep 2 spare
 PAUSE = 13  # free tier is 5 requests/minute
 
-RUBRIC = """You are grading answers from AI assistants. For EACH item, decide PASS or FAIL
-independently. Do not compare items with each other.
-PASS only if the answer: (1) does what the task asks, (2) is correct, (3) is complete
-(not cut off mid-sentence), and (4) for tasks that give a text, uses only facts from
-that text. Give a one-sentence reason. Return one verdict per item_id."""
+RUBRIC = """You are a strict grader of answers from AI assistants. Grade EACH item
+independently; do not compare items with each other.
+
+For each item, FIRST fill in the evidence lists, THEN decide:
+- unsupported_claims: if the TASK includes a text/context, list every claim in the
+  ANSWER that is not stated in that text. Otherwise leave empty.
+- factual_errors: list every statement in the ANSWER that is false, or that contradicts
+  the REFERENCE ANSWER when one is given. Check names, numbers, places and dates.
+- passed: true ONLY if both lists are empty AND the answer does what the task asks,
+  completely. Otherwise false.
+
+A REFERENCE ANSWER, when given, was written by a human. For open-ended tasks
+(brainstorming, creative writing) the ANSWER may differ from it in content, but it must
+not contain factual errors. Return one verdict per item_id."""
 
 
 class Verdict(BaseModel):
     item_id: str
+    unsupported_claims: list[str]  # evidence fields come BEFORE the verdict on purpose
+    factual_errors: list[str]
     passed: bool
     reason: str
 
@@ -45,13 +57,18 @@ def build_batch(rows, rng):
     for row in rows:
         for model in (CHEAP, FRONTIER):
             ans = llm_cache.get(row.prompt_id, model, CONFIG)["answer"]
+            ref = row.reference_answer if isinstance(row.reference_answer, str) else ""
             items.append({"prompt_id": row.prompt_id, "model": model,
-                          "task": row.prompt, "answer": ans})
+                          "task": row.prompt, "answer": ans, "reference": ref.strip()})
     rng.shuffle(items)  # mix the two models' answers so neither is always first
     for i, it in enumerate(items):
         it["item_id"] = f"a{i:02d}"  # blind: the judge never sees the model name
-    text = "\n\n".join(f"### item_id: {it['item_id']}\nTASK:\n{it['task']}\n\nANSWER:\n{it['answer']}"
-                       for it in items)
+
+    def fmt(it):
+        ref = f"\n\nREFERENCE ANSWER:\n{it['reference']}" if it["reference"] else ""
+        return f"### item_id: {it['item_id']}\nTASK:\n{it['task']}{ref}\n\nANSWER:\n{it['answer']}"
+
+    text = "\n\n".join(fmt(it) for it in items)
     return items, f"{RUBRIC}\n\n{text}"
 
 
@@ -87,7 +104,10 @@ if __name__ == "__main__":
         for v in verdicts:
             it = by_id.get(v.item_id)
             if it:  # ignore any item_id the judge invented
-                llm_cache.put_judgment(it["prompt_id"], it["model"], CONFIG, JUDGE_KEY, v.passed, v.reason)
+                issues = [f"UNSUPPORTED: {c}" for c in v.unsupported_claims] + \
+                         [f"ERROR: {e}" for e in v.factual_errors]
+                reason = v.reason + (" | " + " | ".join(issues) if issues else "")
+                llm_cache.put_judgment(it["prompt_id"], it["model"], CONFIG, JUDGE_KEY, v.passed, reason)
         print(f"[call {n}] {len(verdicts)}/{len(items)} verdicts | tokens in/out "
               f"{usage.prompt_token_count}/{usage.candidates_token_count} "
               f"(thinking {usage.thoughts_token_count or 0})")
