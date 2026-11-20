@@ -48,8 +48,8 @@ def answer(prompt_id, prompt, model):
 
 if __name__ == "__main__":
     ids_file = sys.argv[1]  # a .txt of prompt_ids, one per line
-    ids = set(open(ids_file).read().split())
-    prompts = pd.read_parquet("data/prompts_all.parquet").query("prompt_id in @ids")
+    ids = list(dict.fromkeys(open(ids_file).read().split()))  # keep file order
+    prompts = pd.read_parquet("data/prompts_all.parquet").set_index("prompt_id").loc[ids].reset_index()
     calls = 0
     for n, row in enumerate(prompts.itertuples(), 1):
         for model in (CHEAP, FRONTIER):

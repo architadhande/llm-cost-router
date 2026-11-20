@@ -62,3 +62,16 @@ def put_judgment(prompt_id, model, config, judge, passed, reason):
         "VALUES (?, ?, ?, ?, ?, ?)",
         [prompt_id, model, config, judge, passed, reason],
     )
+
+
+con.execute("CREATE TABLE IF NOT EXISTS judge_calls (judge VARCHAR, created_at TIMESTAMP DEFAULT current_timestamp)")
+
+
+def log_judge_call(judge):
+    con.execute("INSERT INTO judge_calls (judge) VALUES (?)", [judge])
+
+
+def judge_calls_since(judge, since):
+    """Successful judge calls since a (naive, local-time) datetime."""
+    return con.execute("SELECT count(*) FROM judge_calls WHERE judge=? AND created_at >= ?",
+                       [judge, since]).fetchone()[0]

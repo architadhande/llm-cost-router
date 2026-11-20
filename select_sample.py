@@ -24,6 +24,11 @@ for category, group in df.groupby("category"):
     parts.append(pd.concat([in_pilot, top_up]))
 
 sample = pd.concat(parts)
+# Round-robin order (pilot first, then one prompt per category in turn): a run that stops
+# partway through still covers every category evenly.
+sample["rank"] = sample.groupby("category").cumcount()
+sample["not_pilot"] = ~sample.prompt_id.isin(pilot_ids)
+sample = sample.sort_values(["not_pilot", "rank", "category"], kind="stable")
 OUT.write_text("\n".join(sample.prompt_id))
 print(f"{len(sample)} prompts ({sample.prompt_id.isin(pilot_ids).sum()} from the pilot) -> {OUT}")
 print(sample.groupby("source").size().to_string())

@@ -7,6 +7,8 @@ import os
 import random
 import sys
 import time
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 from dotenv import load_dotenv
@@ -24,7 +26,7 @@ THINKING = "LOW"  # judge thinking level; less thinking = faster replies, fewer 
 RUBRIC_VERSION = "v2"  # v2 = reference answers + list evidence before the verdict
 JUDGE_KEY = f"{JUDGE}|think-{THINKING.lower()}|rubric-{RUBRIC_VERSION}"  # cache key
 PROMPTS_PER_CALL = 10
-MAX_CALLS_PER_RUN = 18  # free tier is 20 requests/day; keep 2 spare
+MAX_CALLS_PER_DAY = 18  # free tier is 20 requests/day (resets midnight Pacific); keep 2 spare
 PAUSE = 13  # free tier is 5 requests/minute
 
 RUBRIC = """You are a strict grader of answers from AI assistants. Grade EACH item
@@ -97,14 +99,20 @@ if __name__ == "__main__":
             if not all(llm_cache.is_judged(r.prompt_id, m, CONFIG, JUDGE_KEY) for m in (CHEAP, FRONTIER))]
     batches = [todo[i:i + PROMPTS_PER_CALL] for i in range(0, len(todo), PROMPTS_PER_CALL)]
     print(f"{len(todo)} prompts to judge -> {len(batches)} judge calls")
+    pacific_midnight = datetime.now(ZoneInfo("America/Los_Angeles")).replace(
+        hour=0, minute=0, second=0, microsecond=0)
+    since = pacific_midnight.astimezone().replace(tzinfo=None)  # DuckDB stores local time
+    left = MAX_CALLS_PER_DAY - llm_cache.judge_calls_since(JUDGE_KEY, since)
+    print(f"{left} judge calls left in today's quota")
     rng = random.Random(42)
-    for n, batch in enumerate(batches[:MAX_CALLS_PER_RUN], 1):
+    for n, batch in enumerate(batches[:max(left, 0)], 1):
         items, contents = build_batch(batch, rng)
         if dry_run:
             print(f"\n--- DRY RUN: batch {n}, {len(items)} items, ~{len(contents)//4} tokens ---")
             print(contents[:700], "...")
             break
         verdicts, usage = with_retries(lambda: grade(contents), attempts=3, first_wait=60)
+        llm_cache.log_judge_call(JUDGE_KEY)
         by_id = {it["item_id"]: it for it in items}
         for v in verdicts:
             it = by_id.get(v.item_id)
