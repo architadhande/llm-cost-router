@@ -43,3 +43,16 @@
 
 **Interview answer**
 > "Labels were the expensive part. I graded answers with a different model family as the judge, blinded and shuffled, and forced it to list evidence before giving a verdict. I also validated it: a cheaper judge model looked fine but passed answers with errors I had verified by hand, so I rejected it. Everything is cached by prompt hash and runs in a resumable loop sized to the free-tier quotas, so the whole labelling run cost $0."
+
+## Session 4 — Phases 3–6: Router, evaluation, write-up (2026-11-20 to 11-21)
+
+**Concepts covered**
+- **Out-of-fold scoring:** every prompt is scored by a model that never saw it in training (5-fold CV). That lets all 350 labels serve as both training and test data, honestly.
+- **ROC-AUC vs. PR-AUC:** ROC-AUC 0.5 is a coin flip. PR-AUC is measured against the positive rate (31%), so it shows how well we find the rare "needs frontier" prompts.
+- **Cost per successful outcome:** total cost ÷ number of passing answers. It punishes a cheap model that fails often, which "tokens saved" never does.
+- **Baselines frame the result:** always-cheap, always-frontier and the oracle (a perfect router). With only a 2× price gap, always-cheap wins. Routing only pays at bigger gaps (40–54% savings at 10×).
+- **Choose the target carefully:** "cheap fails" includes prompts the frontier model fails too. "Frontier rescues it" is the better target, but with 43 positives it was too sparse to learn yet.
+- **Judge agreement:** an independent second grader agreed with the judge 82% of the time. Disagreements cluster in long, detail-heavy answers.
+
+**Interview answer**
+> "My router beat a simple rule (ROC-AUC 0.62 vs. 0.54), but the honest headline was economic. With the frontier model only 2× the price, always using the cheap model gave the best cost per success. Routing only pays when the price gap is large. I also found most cheap-model failures were frontier failures too, so the right target is 'the big model would fix this'. That needs more labels, which is exactly what I'd collect next."

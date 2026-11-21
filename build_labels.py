@@ -49,7 +49,8 @@ labels = pd.DataFrame({
 }).dropna().reset_index()
 labels[["cheap_pass", "frontier_pass"]] = labels[["cheap_pass", "frontier_pass"]].astype(bool)
 labels = labels.merge(prompts[["prompt_id", "source", "category"]], on="prompt_id")
-labels["needs_frontier"] = ~labels.cheap_pass  # router target: will the cheap model fail?
+labels["needs_frontier"] = ~labels.cheap_pass  # router target v1: will the cheap model fail?
+labels["rescue"] = ~labels.cheap_pass & labels.frontier_pass  # target v2: does the frontier fix it?
 
 labels.to_parquet(OUT, index=False)
 print(f"{len(labels)} labelled prompts (of {len(prompts)}) -> {OUT}")

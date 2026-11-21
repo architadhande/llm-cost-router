@@ -5,6 +5,7 @@ evaluation without any model grading prompts it was trained on.
 Output: data/router_scores.parquet (one score column per router) for evaluate.py.
 """
 
+import sys
 from pathlib import Path
 
 import joblib
@@ -23,8 +24,9 @@ MODELS = Path("models")  # final routers for the app (small; committed to git)
 labels = pd.read_parquet("data/labels.parquet")
 features = pd.read_parquet("data/features.parquet")
 d = labels.merge(features, on="prompt_id")
-X, y = d.drop(columns=labels.columns), d["needs_frontier"].astype(int)
-print(f"{len(d)} prompts, {y.sum()} where the cheap model fails ({y.mean():.1%})")
+TARGET = sys.argv[1] if len(sys.argv) > 1 else "needs_frontier"  # or "rescue"
+X, y = d.drop(columns=labels.columns), d[TARGET].astype(int)
+print(f"target={TARGET}: {len(d)} prompts, {y.sum()} positives ({y.mean():.1%})")
 
 cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=SEED)
 routers = {
