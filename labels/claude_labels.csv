@@ -1,0 +1,97 @@
+label_id,claude_label,notes
+L001,pass,"Disney+ old price $15.99 is derived (18.99-3), fine"
+L002,pass,
+L003,pass,open brainstorming; minor odd tips
+L004,pass,
+L005,pass,correctly says no metrics
+L006,pass,
+L007,pass,values correct; braces only on first value
+L008,pass,
+L009,fail,"says shares ""closing at $133.90""; text says afternoon trading"
+L010,pass,
+L011,pass,
+L012,pass,
+L013,pass,plausible; differs from reference's parquet tip
+L014,pass,
+L015,pass,
+L016,pass,Hel instead of Frigg is fine
+L017,pass,
+L018,pass,
+L019,fail,"adds unsupported claims (most influential, galloping rhythms, original soundtracks)"
+L020,fail,calls Lion turtle a real living species (green sea turtle)
+L021,pass,
+L022,fail,"invented ""Free T on weekends"", fake apps, CityPASS contents wrong"
+L023,fail,"wrong champions e.g. 1950-51 (Rochester), 1956-57 / 1957-58 swapped, 2001-02 Lakers"
+L024,pass,context is unrelated; correctly says none
+L025,pass,low confidence: risk 2-3 partly inferred
+L026,pass,
+L027,pass,
+L028,pass,
+L029,pass,
+L030,pass,
+L031,pass,
+L032,fail,"TJ & J and ""Gordon Haskett of Investors.com"" are errors"
+L033,fail,"Citi Bike called dockless, invented ""Bikeshare NYC"", ferry to Jersey Shore, wrong prices"
+L034,pass,
+L035,pass,
+L036,fail,"many claims not in the context (James Watt, canals, urbanisation)"
+L037,pass,
+L038,fail,"Bubon is a percussion frame drum, not a string instrument"
+L039,pass,
+L040,fail,"misreads ""ropes"" as stage; it is a boxing-ring metaphor"
+L041,pass,
+L042,fail,says Dumbo octopus is extinct
+L043,pass,
+L044,pass,
+L045,pass,
+L046,pass,
+L047,pass,
+L048,fail,"many wrong locations (Children's Museum at Copley, Peabody in Fenway, Arboretum in Brookline, Castle Island as harbor island)"
+L049,fail,"calls the 993 Turbo ""also known as the 911 Turbo S"""
+L050,fail,"misquotes the text (""TJ & J"")"
+L051,pass,
+L052,fail,invents Wayfair contact details and commitments not in the text
+L053,fail,"Bubon is percussion, not string"
+L054,pass,
+L055,pass,
+L056,pass,
+L057,pass,
+L058,pass,
+L059,pass,
+L060,fail,attributes Convergenta's 25.3% stake to JD.com
+L061,pass,
+L062,pass,
+L063,pass,
+L064,pass,
+L065,pass,
+L066,fail,"segment lengths contradict the context (11,500 / 9,600 km); adds unsupported roads"
+L067,pass,
+L068,pass,weak ideas but does the task
+L069,pass,
+L070,fail,"claims a ""refreshed"", ""real-time"" alert system not in the text"
+L071,pass,
+L072,pass,
+L073,fail,claims the 993 Turbo was the first AWD 911 (the 964 Carrera 4 came first; context only says first 911 Turbo)
+L074,pass,
+L075,fail,"adds false claims (Rock Hall 2021, a game ""Eddie The Crocodile"") not in the context"
+L076,pass,
+L077,fail,says the line is not in Lose Yourself; it is
+L078,fail,says the investigation is closed; text lists case state as Open
+L079,pass,
+L080,pass,
+L081,pass,
+L082,pass,
+L083,pass,
+L084,pass,
+L085,pass,
+L086,fail,"adds details not in the context (spinning jennies, lathes)"
+L087,pass,
+L088,fail,identifies Rabbit islands as Kuşadası
+L089,pass,
+L090,pass,
+L091,pass,
+L092,pass,
+L093,fail,"contradicts itself on 24h subway, wrong paratransit fare, taxis ""cash-free"""
+L094,pass,
+L095,pass,
+L096,pass,
