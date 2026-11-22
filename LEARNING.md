@@ -56,3 +56,8 @@
 
 **Interview answer**
 > "My router beat a simple rule (ROC-AUC 0.62 vs. 0.54), but the honest headline was economic. With the frontier model only 2× the price, always using the cheap model gave the best cost per success. Routing only pays when the price gap is large. I also found most cheap-model failures were frontier failures too, so the right target is 'the big model would fix this'. That needs more labels, which is exactly what I'd collect next."
+
+## Session 5 — Refresh at 540 labels (Nov 22 2026)
+- **More data can flip a conclusion.** At 350 prompts the "frontier rescues it" target lost (AUC 0.56 vs 0.62). At 540 prompts (65 rescues instead of 43) it won: the same quality as the "cheap fails" router (71.3% vs 71.5%), but 31% savings instead of 20%. With small positive classes, write early results as "so far", not as verdicts.
+- **AUC moves with sample size.** Logreg on "cheap fails" went from 0.62 to 0.59. That movement is the error bar in practice.
+- **Interview answer:** "My first experiment said the better target didn't work, but it had only 43 positives. I kept it as a hypothesis, labelled more data, and re-ran the same out-of-fold comparison. At 65 positives it cut cost by an extra 11 points at equal quality. I report both results, because how the conclusion changed tells you how much to trust it."

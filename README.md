@@ -3,26 +3,27 @@ ML router that sends each LLM request to the cheapest model that can handle it, 
 
 Like a triage nurse: easy requests go to a cheap model (`gpt-oss-20b`), hard ones to a frontier model (`gpt-oss-120b`), and an LLM judge checks the outcomes. Built entirely on free tiers ($0).
 
-> **Status: v1 results on 350 labelled prompts** (all 70 GSM8K + 280 judged, balanced across all 13 categories). All 910 sampled prompts have answers from both models. Judging the remaining 560 is limited by the Gemini free tier (20 requests/day, often overloaded), so the numbers may shift as more labels arrive.
+> **Status: v1 results on 540 labelled prompts** (all 70 GSM8K + 470 judged, 35–70 per category across all 13 categories). All 910 sampled prompts have answers from both models. Judging the remaining 370 is limited by the Gemini free tier (20 requests/day, often overloaded), so the numbers may still shift.
 
-## Results (v1, 350 labelled prompts)
+## Results (v1, 540 labelled prompts)
 
 ![cost vs quality](results/cost_vs_quality_x1.png)
 
 | Strategy (real Groq prices) | Success rate | Cost per success | Savings vs. always-frontier |
 |---|---|---|---|
-| Always cheap (20b) | 68.9% | $0.000141 | 59% |
-| Always frontier (120b) | 76.3% | $0.000308 | — |
-| Rule baseline (long or number-heavy → frontier) | 72.0% | $0.000217 | 34% |
-| Logistic-regression router (quality setting) | 74.3% | $0.000238 | 25% |
-| Oracle (perfect router, upper bound) | 81.1% | $0.000141 | 51% |
+| Always cheap (20b) | 66.5% | $0.000146 | 59% |
+| Always frontier (120b) | 73.1% | $0.000322 | — |
+| Rule baseline (long or number-heavy → frontier) | 68.9% | $0.000240 | 30% |
+| Logistic-regression router (quality setting) | 71.5% | $0.000265 | 20% |
+| Logreg trained on "frontier rescues it" (quality setting) | 71.3% | $0.000246 | 31% |
+| Oracle (perfect router, upper bound) | 78.5% | $0.000145 | 52% |
 
 **What I learned from the numbers**
-- **The router learns a weak signal so far:** ROC-AUC is 0.62 (logreg) vs. 0.54 (rule). It keeps about 2/3 of the frontier model's quality gain for 25% less cost.
-- **The price gap matters more than the router.** On Groq the frontier model is only 2× the price of the cheap one, so always-cheap has the best cost per success. With a premium frontier model at 10× the price ([what-if chart](results/cost_vs_quality_x10.png)), every routing strategy saves 40–54%.
-- **Routing can't fix prompts that both models fail.** The cheap model fails 31% of prompts, but the frontier model also fails 19% of them. It rescues only 12%. The next iteration trains on "frontier rescues this prompt" instead of "cheap fails".
-- **Retargeting needs more data first.** Training on "frontier rescues it" (cheap fails *and* frontier passes) scored worse (ROC-AUC 0.56 vs. 0.62), because there are only 43 such prompts among the 350. It's the right target once more prompts are labelled.
-- **The oracle (81%) beats always-frontier (76%),** because on 5% of prompts the cheap model passes and the frontier model fails. Bigger isn't always better.
+- **The router learns a weak signal:** ROC-AUC is 0.59–0.60 (logreg, boosted trees) vs. 0.54 (rule). The logreg router keeps about 3/4 of the frontier model's quality gain for 20% less cost. *(At 350 prompts logreg scored 0.62, so the error bars are still wide.)*
+- **The price gap matters more than the router.** On Groq the frontier model is only 2× the price of the cheap one, so always-cheap has the best cost per success. With a premium frontier model at 10× the price ([what-if chart](results/cost_vs_quality_x10.png)), routing saves 25–51% while keeping most of the quality gain.
+- **Routing can't fix prompts that both models fail.** The cheap model fails 33.5% of prompts, and the frontier model also fails 21.5% of them. It rescues only 12%.
+- **Predicting "frontier rescues it" beats predicting "cheap fails".** Training on rescues (cheap fails *and* frontier passes) gives the same quality (71.3% vs. 71.5%) for less money: 31% savings instead of 20% at real prices, and 51% instead of 32% at 10×. Logreg ROC-AUC is 0.62 vs. 0.59. At 350 prompts (43 rescues) this target lost; at 540 (65 rescues) it wins, so more labels changed the conclusion. Boosted trees don't benefit yet. The app still uses the "cheap fails" target, because it reports that probability directly.
+- **The oracle (78.5%) beats always-frontier (73.1%),** because on 5% of prompts the cheap model passes and the frontier model fails. Bigger isn't always better.
 
 ## How it works
 1. **Data (Phase 1):** 2,178 public prompts: Databricks Dolly (8 task types), GSM8K math, and business tasks built from Tavily/Exa search snippets with 4 fixed templates. The v1 sample is 910 prompts, 70 per category.
@@ -38,15 +39,15 @@ Like a triage nurse: easy requests go to a cheap model (`gpt-oss-20b`), hard one
 Every API response is cached in DuckDB by `(prompt hash, model, settings)`, so no call is ever paid for twice and every run can resume where it stopped.
 
 ## Limitations and next steps
-- **Small labelled set:** with 350 prompts the router's AUC has wide error bars. Judging the remaining 560 prompts (already answered and cached) is the cheapest improvement.
+- **Small labelled set:** with 540 prompts the router's AUC has wide error bars (it moved 0.03 between 350 and 540). Judging the remaining 370 prompts (already answered and cached) is the cheapest improvement.
 - **Judge reliability:** on 56 answers graded by both, an independent LLM second opinion agreed with the Gemini judge 82% of the time. The judge misses invented details in long answers. Human hand labels (`labels/hand_labels.csv`) are the final check.
 - **Modelled costs:** costs use Groq's published per-token prices on real token counts. Free tiers aren't billed.
-- **Next:** more labels → "frontier rescues" target → per-category thresholds → a third, cheaper tier.
+- **Next:** more labels → make "frontier rescues" the default target in the app → per-category thresholds → a third, cheaper tier.
 
 ## Roadmap
 - [x] Phase 0: Setup — folder structure, `.env`, first "hello world" call to Groq and Gemini
 - [x] Phase 1: Data — collect ~2–3k prompts (Hugging Face + business-style prompts via Tavily/Exa)
-- [x] Phase 2: Labels — run prompts through both models, judge with Gemini, validate judge on ~100 hand labels *(910/910 answered; 350 labelled; human hand labels pending)*
+- [x] Phase 2: Labels — run prompts through both models, judge with Gemini, validate judge on ~100 hand labels *(910/910 answered; 540 labelled; human hand labels pending)*
 - [x] Phase 3: Router — baseline rules → logistic regression on embeddings → gradient-boosted trees
 - [x] Phase 4: Evaluation — cost-vs-quality curve, cost per successful outcome vs. baselines
 - [ ] Phase 5: Demo — Streamlit app, deployed free *(app built; deploy pending)*
